@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planejamento Financeiro - Setembro 2025</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <h1>💰 Planejamento Casal Duarte</h1>
+            <div class="month-selector-container">
+                <select id="month-selector" class="form-control">
+                    <option value="2025-09">Setembro 2025</option>
+                </select>
+                <button class="btn btn--sm btn--primary" onclick="addNewMonth()" title="Adicionar Novo Mês">+</button>
+                <button class="btn btn--sm btn--outline" onclick="deleteCurrentMonth()" title="Excluir Mês Atual">🗑️</button>
+                <button class="btn btn--sm btn--secondary" onclick="openMonthComparison()" title="Comparar Meses">📊</button>
+            </div>
+        </div>
+        <div class="navbar-menu">
+            <button class="nav-item active" data-view="dashboard">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-text">Dashboard</span>
+            </button>
+            <button class="nav-item" data-view="adicionar">
+                <span class="nav-icon">➕</span>
+                <span class="nav-text">Adicionar</span>
+            </button>
+            <button class="nav-item" data-view="acompanhamento">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Acompanhamento</span>
+            </button>
+            <button class="nav-item" data-view="eventualidades">
+                <span class="nav-icon">⚠️</span>
+                <span class="nav-text">Eventualidades</span>
+            </button>
+            <button class="nav-item" data-view="relatorios">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Relatórios</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard View -->
+        <div id="dashboard" class="view active">
+            <div class="view-header">
+                <h2>Dashboard - Visão Geral</h2>
+                <div class="header-actions">
+                    <button class="btn btn--primary" onclick="openImportModal()">📥 Importar Planilha Excel</button>
+                    <button class="btn btn--secondary btn--sm" onclick="resetData()">Resetar Dados</button>
+                    <button class="btn btn--outline btn--sm" onclick="clearAllData()">Limpar Tudo</button>
+                </div>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="card summary-card">
+                    <div class="card__body">
+                        <div class="summary-label">Total Expectativa</div>
+                        <div class="summary-value" id="total-expectativa">R$ 0,00</div>
+                    </div>
+                </div>
+                <div class="card summary-card">
+                    <div class="card__body">
+                        <div class="summary-label">Total Realidade</div>
+                        <div class="summary-value" id="total-realidade">R$ 0,00</div>
+                    </div>
+                </div>
+                <div class="card summary-card">
+                    <div class="card__body">
+                        <div class="summary-label">Diferença</div>
+                        <div class="summary-value" id="total-diferenca">R$ 0,00</div>
+                    </div>
+                </div>
+                <div class="card summary-card">
+                    <div class="card__body">
+                        <div class="summary-label">Desvio Percentual</div>
+                        <div class="summary-value" id="desvio-percentual">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-grid-full">
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Planejamento vs Realidade</h3>
+                        <div class="chart-wrapper" style="height: 450px;">
+                            <canvas id="planejamento-realidade-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Resumo por Categoria</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="resumo-categoria-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Distribuição das Despesas</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="pie-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-grid-full">
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Desvios do Planejamento</h3>
+                        <div class="chart-wrapper" style="height: 400px;">
+                            <canvas id="desvios-dashboard-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Expenses Table -->
+            <div class="card">
+                <div class="card__body">
+                    <div class="table-header">
+                        <h3>Todas as Despesas</h3>
+                        <input type="text" id="search-expenses" class="form-control search-input" placeholder="Buscar despesas...">
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="data-table" id="expenses-table">
+                            <thead>
+                                <tr>
+                                    <th onclick="sortTable(0)">Categoria ⇅</th>
+                                    <th onclick="sortTable(1)">Descrição ⇅</th>
+                                    <th onclick="sortTable(2)">Situação ⇅</th>
+                                    <th onclick="sortTable(3)">Expectativa ⇅</th>
+                                    <th onclick="sortTable(4)">Realidade ⇅</th>
+                                    <th onclick="sortTable(5)">Diferença ⇅</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expenses-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Expense View -->
+        <div id="adicionar" class="view">
+            <div class="view-header">
+                <h2>Adicionar Nova Despesa</h2>
+            </div>
+
+            <div class="card form-card">
+                <div class="card__body">
+                    <form id="add-expense-form">
+                        <div class="form-group">
+                            <label class="form-label" for="categoria">Categoria *</label>
+                            <select id="categoria" class="form-control" required>
+                                <option value="">Selecione uma categoria</option>
+                                <option value="Invariável">Invariável</option>
+                                <option value="Variável">Variável</option>
+                                <option value="Extra">Extra</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="descricao">Descrição *</label>
+                            <input type="text" id="descricao" class="form-control" placeholder="Ex: Aluguel, Luz, etc." required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="situacao">Situação *</label>
+                            <select id="situacao" class="form-control" required>
+                                <option value="">Selecione a situação</option>
+                                <option value="Paga">Paga</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Atrasada">Atrasada</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="expectativa">Expectativa (R$) *</label>
+                                <input type="number" id="expectativa" class="form-control" placeholder="0,00" step="0.01" min="0" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="realidade">Realidade (R$) *</label>
+                                <input type="number" id="realidade" class="form-control" placeholder="0,00" step="0.01" min="0" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Diferença Calculada</label>
+                            <div class="diferenca-display" id="diferenca-display">R$ 0,00</div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn--primary">Adicionar Despesa</button>
+                            <button type="button" class="btn btn--secondary" onclick="resetForm()">Limpar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Tracking View -->
+        <div id="acompanhamento" class="view">
+            <div class="view-header">
+                <h2>Acompanhamento Detalhado</h2>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-button active" data-tab="combustivel">🚗 Combustível</button>
+                <button class="tab-button" data-tab="supermercado">🛒 Supermercado</button>
+                <button class="tab-button" data-tab="lazer">🎉 Lazer</button>
+            </div>
+
+            <!-- Combustivel Tab -->
+            <div class="tab-content active" id="tab-combustivel">
+                <div class="card">
+                    <div class="card__body">
+                        <div class="table-header">
+                            <h3>Gastos com Combustível</h3>
+                            <button class="btn btn--primary btn--sm" onclick="openAddModal('combustivel')">+ Adicionar</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Local</th>
+                                        <th>Valor (R$)</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="combustivel-tbody"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td><strong id="combustivel-total">R$ 0,00</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Supermercado Tab -->
+            <div class="tab-content" id="tab-supermercado">
+                <div class="card">
+                    <div class="card__body">
+                        <div class="table-header">
+                            <h3>Gastos com Supermercado</h3>
+                            <button class="btn btn--primary btn--sm" onclick="openAddModal('supermercado')">+ Adicionar</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Local</th>
+                                        <th>Quantia (R$)</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="supermercado-tbody"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td><strong id="supermercado-total">R$ 0,00</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lazer Tab -->
+            <div class="tab-content" id="tab-lazer">
+                <div class="card">
+                    <div class="card__body">
+                        <div class="table-header">
+                            <h3>Gastos com Lazer</h3>
+                            <button class="btn btn--primary btn--sm" onclick="openAddModal('lazer')">+ Adicionar</button>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Local</th>
+                                        <th>Gasto (R$)</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lazer-tbody"></tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td><strong id="lazer-total">R$ 0,00</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Eventualidades View -->
+        <div id="eventualidades" class="view">
+            <div class="view-header">
+                <h2>Eventualidades - Gastos Extras</h2>
+            </div>
+
+            <div class="card">
+                <div class="card__body">
+                    <div class="table-header">
+                        <h3>Gastos Não Planejados</h3>
+                        <button class="btn btn--primary btn--sm" onclick="openAddEventualidade()">+ Adicionar</button>
+                    </div>
+                    <div class="budget-warning" id="budget-warning"></div>
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Valor (R$)</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="eventualidades-tbody"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <td><strong>Total</strong></td>
+                                    <td><strong id="eventualidades-total">R$ 0,00</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports View -->
+        <div id="relatorios" class="view">
+            <div class="view-header">
+                <h2>Relatórios e Análises</h2>
+                <button class="btn btn--primary btn--sm" onclick="exportCSV()">📥 Exportar CSV</button>
+            </div>
+
+            <div class="charts-grid">
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Desvios do Planejamento</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="desvios-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="card chart-container">
+                    <div class="card__body">
+                        <h3>Resumo por Categoria</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="categoria-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card__body">
+                    <h3>Resumo Estatístico</h3>
+                    <div class="stats-grid" id="stats-grid"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Adding Tracking Items -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Adicionar Item</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="modal-form">
+                    <div class="form-group">
+                        <label class="form-label" id="modal-label-1">Local</label>
+                        <input type="text" id="modal-input-1" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" id="modal-label-2">Valor</label>
+                        <input type="number" id="modal-input-2" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn--primary">Adicionar</button>
+                        <button type="button" class="btn btn--secondary" onclick="closeModal()">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Excel Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Importar Planilha Excel</h3>
+                <button class="modal-close" onclick="closeImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Selecione o arquivo Excel (.xlsx)</label>
+                    <input type="file" id="excel-file-input" class="form-control" accept=".xlsx" onchange="handleExcelUpload(event)">
+                </div>
+                <div id="import-preview" style="display: none;">
+                    <h4>Preview dos Dados</h4>
+                    <div id="preview-content"></div>
+                    <div class="form-group">
+                        <label class="form-label">Nome do Mês</label>
+                        <input type="text" id="import-month-name" class="form-control" placeholder="Ex: Outubro 2025" required>
+                        <small style="color: var(--color-text-secondary); margin-top: var(--space-4); display: block;">Formato: Mês Ano (ex: Julho 2025)</small>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn--primary" onclick="confirmImport()">Confirmar Importação</button>
+                        <button class="btn btn--secondary" onclick="closeImportModal()">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Month Comparison Modal -->
+    <div id="comparison-modal" class="modal">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h3>Comparação entre Meses</h3>
+                <button class="modal-close" onclick="closeComparisonModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Primeiro Mês</label>
+                        <select id="compare-month-1" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Segundo Mês</label>
+                        <select id="compare-month-2" class="form-control"></select>
+                    </div>
+                </div>
+                <button class="btn btn--primary" onclick="generateComparison()">Comparar</button>
+                <div id="comparison-result" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
