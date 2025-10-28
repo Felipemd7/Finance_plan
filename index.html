@@ -43,6 +43,10 @@
                 <span class="nav-icon">📊</span>
                 <span class="nav-text">Relatórios</span>
             </button>
+            <button class="nav-item" data-view="dados">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Dados</span>
+            </button>
         </div>
     </nav>
 
@@ -359,6 +363,68 @@
             </div>
         </div>
 
+        <!-- Data Management View -->
+        <div id="dados" class="view">
+            <div class="view-header">
+                <h2>Gerenciamento de Dados</h2>
+            </div>
+
+            <div class="card">
+                <div class="card__body">
+                    <h3>💾 Backup e Restauração</h3>
+                    <p style="color: var(--color-text-secondary); margin-bottom: var(--space-20);">Como os dados não podem ser salvos no navegador, use estas opções para fazer backup e restaurar seus dados.</p>
+                    
+                    <div class="data-management-grid">
+                        <div class="data-action-card">
+                            <div class="data-action-icon">💾</div>
+                            <h4>Fazer Backup Agora</h4>
+                            <p>Baixe todos os seus dados em formato JSON</p>
+                            <button class="btn btn--primary" onclick="downloadBackup()">Baixar Backup</button>
+                        </div>
+                        
+                        <div class="data-action-card">
+                            <div class="data-action-icon">📥</div>
+                            <h4>Restaurar Backup</h4>
+                            <p>Carregue um arquivo JSON para restaurar seus dados</p>
+                            <input type="file" id="restore-file-input" accept=".json" style="display: none;" onchange="handleRestoreUpload(event)">
+                            <button class="btn btn--secondary" onclick="document.getElementById('restore-file-input').click()">Selecionar Arquivo</button>
+                        </div>
+                        
+                        <div class="data-action-card">
+                            <div class="data-action-icon">ℹ️</div>
+                            <h4>Status dos Dados</h4>
+                            <p><strong>Meses salvos:</strong> <span id="status-months">0</span></p>
+                            <p><strong>Total de despesas:</strong> <span id="status-expenses">0</span></p>
+                            <p><strong>Último backup:</strong> <span id="status-last-backup">Nunca</span></p>
+                        </div>
+                        
+                        <div class="data-action-card">
+                            <div class="data-action-icon">⚙️</div>
+                            <h4>Configurações</h4>
+                            <label style="display: flex; align-items: center; gap: var(--space-8); margin-bottom: var(--space-12);">
+                                <input type="checkbox" id="auto-backup-toggle" onchange="toggleAutoBackup()">
+                                <span>Backup automático após importar</span>
+                            </label>
+                            <button class="btn btn--outline" onclick="exportAllAsExcel()">Exportar Tudo (CSV)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card__body">
+                    <h3>📋 Como Funciona</h3>
+                    <ol style="color: var(--color-text-secondary); line-height: 1.8;">
+                        <li><strong>Durante a sessão:</strong> Seus dados ficam na memória do navegador e funcionam normalmente</li>
+                        <li><strong>Ao fechar o navegador:</strong> Os dados são perdidos (limitação do ambiente)</li>
+                        <li><strong>Solução:</strong> Clique em "Fazer Backup" para baixar seus dados em JSON</li>
+                        <li><strong>Para restaurar:</strong> Use "Restaurar Backup" e selecione o arquivo JSON salvo</li>
+                        <li><strong>Backup automático:</strong> Ative para baixar backup automaticamente após cada importação de Excel</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
         <!-- Reports View -->
         <div id="relatorios" class="view">
             <div class="view-header">
@@ -469,6 +535,28 @@
                 </div>
                 <button class="btn btn--primary" onclick="generateComparison()">Comparar</button>
                 <div id="comparison-result" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Prompt Modal -->
+    <div id="backup-prompt-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✓ Importação Concluída!</h3>
+                <button class="modal-close" onclick="closeBackupPrompt()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja baixar um backup dos seus dados?</p>
+                <p style="color: var(--color-text-secondary); font-size: var(--font-size-sm); margin-top: var(--space-8);">Recomendamos fazer backup regularmente para não perder seus dados ao fechar o navegador.</p>
+                <div class="form-actions" style="margin-top: var(--space-20);">
+                    <button class="btn btn--primary" onclick="doBackupAndClose()">Sim, Baixar Backup</button>
+                    <button class="btn btn--secondary" onclick="closeBackupPrompt()">Não, Obrigado</button>
+                </div>
+                <label style="display: flex; align-items: center; gap: var(--space-8); margin-top: var(--space-16);">
+                    <input type="checkbox" id="always-auto-backup" onchange="saveAutoBackupPreference()">
+                    <span style="font-size: var(--font-size-sm);">Sempre fazer backup automaticamente</span>
+                </label>
             </div>
         </div>
     </div>

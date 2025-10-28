@@ -78,6 +78,10 @@ let currentMonth = "2025-09";
 // Temporary storage for imported data
 let importedData = null;
 
+// Auto-backup preference (stored in memory only)
+let autoBackupEnabled = false;
+let lastBackupTime = null;
+
 // Charts references
 let planejamentoRealidadeChart = null;
 let resumoCategoriaChart = null;
@@ -209,6 +213,8 @@ function setupNavigation() {
         updateTrackingTables();
       } else if (viewId === 'eventualidades') {
         updateEventualidadesTable();
+      } else if (viewId === 'dados') {
+        updateDataStatus();
       }
     });
   });
@@ -1535,6 +1541,15 @@ function confirmImport() {
   
   showToast(`Dados importados com sucesso para ${monthName}!`, 'success');
   console.log('Import completed successfully');
+  
+  // Check auto-backup preference
+  if (autoBackupEnabled) {
+    console.log('Auto-backup is enabled, downloading backup...');
+    setTimeout(() => autoBackup(), 500);
+  } else {
+    console.log('Auto-backup is disabled, showing prompt...');
+    setTimeout(() => showBackupPrompt(), 500);
+  }
 }
 
 // Month Comparison
@@ -1671,6 +1686,190 @@ function updateAll() {
   updateReports();
 }
 
+// ========== BACKUP AND RESTORE FUNCTIONS ==========
+
+// Download backup as JSON
+function downloadBackup() {
+  const backupData = {
+    version: '1.0',
+    exportDate: new Date().toISOString(),
+    currentMonth: currentMonth,
+    months: allMonthsData
+  };
+  
+  const dataStr = JSON.stringify(backupData, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const timestamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `orcamento-backup-${timestamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  
+  lastBackupTime = new Date();
+  updateDataStatus();
+  showToast('Backup baixado com sucesso!', 'success');
+  console.log('Backup downloaded:', timestamp);
+}
+
+// Handle restore file upload
+function handleRestoreUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!file.name.endsWith('.json')) {
+    showToast('Por favor, selecione um arquivo JSON válido!', 'error');
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const backupData = JSON.parse(e.target.result);
+      
+      // Validate backup structure
+      if (!backupData.months || !backupData.currentMonth) {
+        showToast('Arquivo de backup inválido!', 'error');
+        return;
+      }
+      
+      // Confirm restoration
+      const monthCount = Object.keys(backupData.months).length;
+      if (!confirm(`Deseja restaurar ${monthCount} mês(es)? Isso substituirá todos os dados atuais.`)) {
+        return;
+      }
+      
+      // Restore data
+      allMonthsData = backupData.months;
+      currentMonth = backupData.currentMonth;
+      
+      // Update UI
+      setupMonthSelector();
+      updateAll();
+      updateDataStatus();
+      
+      showToast('Dados restaurados com sucesso!', 'success');
+      console.log('Data restored from backup:', backupData.exportDate);
+      
+      // Switch to dashboard
+      const dashboardNav = document.querySelector('.nav-item[data-view="dashboard"]');
+      if (dashboardNav) dashboardNav.click();
+      
+    } catch (error) {
+      console.error('Erro ao restaurar backup:', error);
+      showToast('Erro ao restaurar backup: ' + error.message, 'error');
+    }
+  };
+  
+  reader.readAsText(file);
+  
+  // Reset file input
+  event.target.value = '';
+}
+
+// Auto-backup after import
+function autoBackup() {
+  downloadBackup();
+}
+
+// Toggle auto-backup preference
+function toggleAutoBackup() {
+  const checkbox = document.getElementById('auto-backup-toggle');
+  if (checkbox) {
+    autoBackupEnabled = checkbox.checked;
+    console.log('Auto-backup:', autoBackupEnabled ? 'enabled' : 'disabled');
+  }
+}
+
+// Save auto-backup preference from modal checkbox
+function saveAutoBackupPreference() {
+  const checkbox = document.getElementById('always-auto-backup');
+  if (checkbox) {
+    autoBackupEnabled = checkbox.checked;
+    
+    // Update the toggle in data management page
+    const toggle = document.getElementById('auto-backup-toggle');
+    if (toggle) toggle.checked = autoBackupEnabled;
+    
+    console.log('Auto-backup preference saved:', autoBackupEnabled);
+  }
+}
+
+// Show backup prompt modal
+function showBackupPrompt() {
+  const modal = document.getElementById('backup-prompt-modal');
+  if (modal) modal.classList.add('active');
+}
+
+// Close backup prompt modal
+function closeBackupPrompt() {
+  const modal = document.getElementById('backup-prompt-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+// Do backup and close modal
+function doBackupAndClose() {
+  downloadBackup();
+  closeBackupPrompt();
+}
+
+// Update data status in management page
+function updateDataStatus() {
+  const monthsCount = Object.keys(allMonthsData).length;
+  let totalExpenses = 0;
+  Object.values(allMonthsData).forEach(month => {
+    totalExpenses += month.despesas.length;
+  });
+  
+  const monthsEl = document.getElementById('status-months');
+  const expensesEl = document.getElementById('status-expenses');
+  const lastBackupEl = document.getElementById('status-last-backup');
+  
+  if (monthsEl) monthsEl.textContent = monthsCount;
+  if (expensesEl) expensesEl.textContent = totalExpenses;
+  if (lastBackupEl) {
+    if (lastBackupTime) {
+      const minutes = Math.floor((new Date() - lastBackupTime) / 60000);
+      if (minutes < 1) {
+        lastBackupEl.textContent = 'Agora mesmo';
+      } else if (minutes < 60) {
+        lastBackupEl.textContent = `Há ${minutes} minuto(s)`;
+      } else {
+        lastBackupEl.textContent = lastBackupTime.toLocaleString('pt-BR');
+      }
+    } else {
+      lastBackupEl.textContent = 'Nunca';
+    }
+  }
+  
+  // Update auto-backup toggle
+  const toggle = document.getElementById('auto-backup-toggle');
+  if (toggle) toggle.checked = autoBackupEnabled;
+}
+
+// Export all data as CSV
+function exportAllAsExcel() {
+  let csv = 'Mês,Categoria,Descrição,Situação,Expectativa,Realidade,Diferença\n';
+  
+  Object.keys(allMonthsData).forEach(monthKey => {
+    const monthData = allMonthsData[monthKey];
+    monthData.despesas.forEach(d => {
+      const diferenca = d.realidade - d.expectativa;
+      csv += `${monthData.mesNome},${d.categoria},${d.descricao},${d.situacao},${d.expectativa.toFixed(2)},${d.realidade.toFixed(2)},${diferenca.toFixed(2)}\n`;
+    });
+  });
+  
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  const timestamp = new Date().toISOString().split('T')[0];
+  link.download = `orcamento-completo-${timestamp}.csv`;
+  link.click();
+  
+  showToast('CSV exportado com sucesso!', 'success');
+}
+
 // Initialize app
 function init() {
   console.log('Inicializando aplicação...');
@@ -1697,7 +1896,10 @@ function init() {
     updateAll();
     console.log('Dados atualizados - Aplicação pronta!');
     
-    showToast('Aplicação carregada com sucesso!', 'success');
+    // Update data status if on data management page
+    updateDataStatus();
+    
+    showToast('Aplicação carregada com sucesso! Lembre-se de fazer backup regularmente.', 'success');
   } catch (error) {
     console.error('Erro na inicialização:', error);
     showToast('Erro ao carregar a aplicação: ' + error.message, 'error');
